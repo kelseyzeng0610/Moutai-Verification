@@ -236,7 +236,7 @@ contract Asset {
     
 
     emit OwnershipTransferAccepted(propertyId, newOwner);
-
+    /// hello xu yuan
 
 }
     
