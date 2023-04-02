@@ -232,12 +232,9 @@ contract Asset {
         } else {
         payable(msg.sender).transfer(msg.value);
 
-
-    
-
     emit OwnershipTransferAccepted(propertyId, newOwner);
 
-   ///helllo
+
 }
     
     }
