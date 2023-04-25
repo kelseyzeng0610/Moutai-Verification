@@ -20,13 +20,11 @@ const createEthereumContract = () => {
   return transactionsContract;
 };
 
-
-
 export const TransactionsProvider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState("");
   const [formData, setFormData] = useState({ addressTo: "", amount: "", propertyID: "" });
   const [isLoading, setIsLoading] = useState(false);
-  const [transactionCount, setTransactionCount] = useState(localStorage.getItem("transactionCount"));
+  const [isLoading2, setIsLoading2] = useState(false);
 
   const handleChange = (e, name) => {
     setFormData((prevState) => ({ ...prevState, [name]: e.target.value })); 
@@ -58,6 +56,41 @@ export const TransactionsProvider = ({ children }) => {
     }
   };
 
+  const getPropertyDetails = async (propertyId) => {
+    try {
+      const transactionContract = createEthereumContract();
+      const result = await transactionContract.getPropertyDetails(propertyId);
+      return result;
+    } catch (error) {
+      console.error('Error in getting property details:', error);
+      throw error;
+    }
+  };
+
+  const getAllProperties = async () => {
+    try {
+      if (ethereum) {
+        const transactionsContract = createEthereumContract();
+
+        const availableTransactions = await transactionsContract.getAllProperties();
+
+        const structuredTransactions = availableTransactions.map((transaction) => ({
+          currOwner: transaction.currOwner,
+          propertyID: transaction.propId,
+          amount: parseInt(transaction.value._hex) / (10 ** 18)
+        }));
+
+        console.log(structuredTransactions);
+
+        // setTransactions(structuredTransactions);
+      } else {
+        console.log("Ethereum is not present");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const checkIfWalletIsConnected = async () => {
     try {
       if (!ethereum) return alert("Please install MetaMask.");
@@ -68,11 +101,29 @@ export const TransactionsProvider = ({ children }) => {
       if (accounts.length) {
         setCurrentAccount(accounts[0]);
         getAllTransactions();
+        getAllProperties();
       } else {
         console.log("No accounts found");
       }
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const createProperty = async (propId, value, owner) => {
+    try {
+      const transactionContract = createEthereumContract();
+      const transactionHash = await transactionContract.createProperty(propId, value, owner);
+      setIsLoading2(true);
+      console.log(`loading - ${transactionHash.hash}`);
+      await transactionHash.wait();
+      setIsLoading2(false);
+      console.log(`success - ${transactionHash.hash}`);
+  
+      // Refresh the list of properties
+      await getAllProperties();
+    } catch (error) {
+      console.log("Error creating property:", error);
     }
   };
 
@@ -132,7 +183,7 @@ export const TransactionsProvider = ({ children }) => {
   }, []);
 
   return (
-    <TransactionContext.Provider value={{ connectWallet, currentAccount, formData, setFormData, sendTransaction, handleChange, isLoading }}>
+    <TransactionContext.Provider value={{ getPropertyDetails, createProperty, connectWallet, currentAccount, formData, setFormData, sendTransaction, handleChange, isLoading, isLoading2 }}>
       {children}
     </TransactionContext.Provider>
   );
